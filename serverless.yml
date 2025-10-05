@@ -1,0 +1,54 @@
+service: pdf-generate
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ap-south-1
+  timeout: 30
+  stage: dev
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:DeleteObject
+          Resource:
+            - "arn:aws:s3:::temporary-files/*"
+        - Effect: Allow
+          Action:
+            - s3:ListBucket
+          Resource:
+            - "arn:aws:s3:::temporary-files"
+
+functions:
+  pdfGenerate:
+  handler: serverless/makePdf.handler
+  environment:
+    NODE_PATH: './:/opt:/opt/nodejs:/opt/nodejs/node20/node_modules:/opt/nodejs/node_modules:/var/runtime/node_modules:/var/runtime:/var/task'
+  layers:
+    - { Ref: NodeModulesLambdaLayer }
+
+
+layers:
+  nodeModules:
+    path: layer/nodejs
+    name: NodeModules
+    description: All the node_modules will be added here (npm install and custom added)
+    compatibleRuntimes:
+      - nodejs20.x
+    retain: false
+    allowedAccounts:
+      - '*'
+
+package:
+  individually: true
+  excludeDevDependencies: false
+  exclude:
+    - node_modules/**
+    - .serverless/**
+    - .git/**
+    - layer/**
